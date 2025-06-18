@@ -2,7 +2,7 @@
 import heapq
 import time
 
-import eventlet
+import chewie.helper
 
 
 class TimerJob:
@@ -44,7 +44,7 @@ class TimerScheduler:
         self.logger = logger
         self.timer_heap = []
 
-        self.sleep = eventlet.sleep
+        self.sleep = chewie.helper.sleep
         if sleep:
             self.sleep = sleep
 
@@ -61,16 +61,14 @@ class TimerScheduler:
         """
         if not args:
             args = []
-        self.logger.debug(
-            "submitted job %s expire in %d, args: %s", func.__name__, timeout, args
-        )
+        self.logger.debug("submitted job %s expire in %d, args: %s", func.__name__, timeout, args)
         expiry_time = time.time() + timeout
 
         job = TimerJob(expiry_time, func, args)
         heapq.heappush(self.timer_heap, (expiry_time, job))
         return job
 
-    def run(self):
+    async def run(self):
         """Main loop. should run forever"""
         while True:
             try:
@@ -78,18 +76,13 @@ class TimerScheduler:
                     if self.timer_heap[0][0] < time.time():
                         _, job = heapq.heappop(self.timer_heap)
                         if not job.cancelled():
-                            self.logger.info(
-                                "running job %s %s", job.func.__name__, job.args
-                            )
                             job.func(*job.args)
                         else:
-                            self.logger.debug(
-                                "job %s has been cancelled", job.func.__name__
-                            )
+                            self.logger.debug('job %s has been cancelled', job.func.__name__)
                     else:
-                        self.sleep(1)
+                        await self.sleep(1)
                 else:
-                    self.sleep(1)
+                    await self.sleep(1)
             except Exception as e:
                 self.logger.exception(e)
-        self.logger.warning("timer_scheduler finished quuee")
+        self.logger.warning('timer_scheduler finished quuee')

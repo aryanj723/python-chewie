@@ -1,26 +1,10 @@
 from chewie.auth_8021x import Auth8021x
-from chewie.eap import (
-    Eap,
-    EapIdentity,
-    EapMd5Challenge,
-    EapSuccess,
-    EapFailure,
-    EapLegacyNak,
-    EapTTLS,
-    EapTLS,
-    EapPEAP,
-    PARSERS_TYPES,
-)
+from chewie.eap import Eap, EapIdentity, EapMd5Challenge, EapSuccess, EapFailure, EapLegacyNak, \
+    EapTTLS, EapTLS, EapPEAP, PARSERS_TYPES
 from chewie.ethernet_packet import EthernetPacket
 from chewie.radius import RadiusAttributesList, RadiusAccessRequest, Radius
-from chewie.radius_attributes import (
-    CallingStationId,
-    UserName,
-    MessageAuthenticator,
-    EAPMessage,
-    NASPort,
-    UserPassword,
-)
+from chewie.radius_attributes import CallingStationId, UserName, MessageAuthenticator, EAPMessage, \
+    NASPort, UserPassword
 from chewie.utils import MessageParseError
 
 
@@ -36,11 +20,7 @@ class EapMessage:  # pylint: disable=too-few-public-methods
         _id = self.message_id
         if _id is None:
             _id = -1
-        return "'%s': src_mac: '%s', id: '%d'" % (
-            self.__class__.__name__,
-            self.src_mac,
-            _id,
-        )
+        return "'%s': src_mac: '%s', id: '%d'" % (self.__class__.__name__, self.src_mac, _id)
 
 
 class SuccessMessage(EapMessage):  # pylint: disable=too-few-public-methods
@@ -62,11 +42,7 @@ class IdentityMessage(EapMessage):
         self.identity = identity
 
     def __str__(self):
-        return "%s, code: '%d', identity: '%s'" % (
-            super().__str__(),
-            self.code,
-            self.identity,
-        )
+        return "%s, code: '%d', identity: '%s'" % (super().__str__(), self.code, self.identity)
 
     @classmethod
     def build(cls, src_mac, eap):
@@ -80,11 +56,8 @@ class LegacyNakMessage(EapMessage):
         self.desired_auth_types = desired_auth_types
 
     def __str__(self):
-        return "%s, code: '%d', desired_auth_types: '%s'" % (
-            super().__str__(),
-            self.code,
-            self.desired_auth_types,
-        )
+        return "%s, code: '%d', desired_auth_types: '%s'" \
+               % (super().__str__(), self.code, self.desired_auth_types)
 
     @classmethod
     def build(cls, src_mac, eap):
@@ -92,21 +65,15 @@ class LegacyNakMessage(EapMessage):
 
 
 class Md5ChallengeMessage(EapMessage):
-    def __init__(
-        self, src_mac, message_id, code, challenge, extra_data
-    ):  # pylint: disable=too-many-arguments
+    def __init__(self, src_mac, message_id, code, challenge, extra_data):  # pylint: disable=too-many-arguments
         super().__init__(src_mac, message_id)
         self.code = code
         self.challenge = challenge
         self.extra_data = extra_data
 
     def __str__(self):
-        return "%s, code: '%d', challenge: '%s', extra_data: '%s'" % (
-            super().__str__(),
-            self.code,
-            self.challenge,
-            self.extra_data,
-        )
+        return "%s, code: '%d', challenge: '%s', extra_data: '%s'" \
+               % (super().__str__(), self.code, self.challenge, self.extra_data)
 
     @classmethod
     def build(cls, src_mac, eap):
@@ -116,21 +83,15 @@ class Md5ChallengeMessage(EapMessage):
 class TlsMessageBase(EapMessage):
     """TLS and TTLS will extend this class, but TTLS cannot be same type as TLS"""
 
-    def __init__(
-        self, src_mac, message_id, code, flags, extra_data
-    ):  # pylint: disable=too-many-arguments
+    def __init__(self, src_mac, message_id, code, flags, extra_data):  # pylint: disable=too-many-arguments
         super().__init__(src_mac, message_id)
         self.code = code
         self.flags = flags
         self.extra_data = extra_data
 
     def __str__(self):
-        return "%s, code: '%d', flags: '%s', extra_data: '%s'" % (
-            super().__str__(),
-            self.code,
-            self.flags,
-            self.extra_data,
-        )
+        return "%s, code: '%d', flags: '%s', extra_data: '%s'" \
+               % (super().__str__(), self.code, self.flags, self.extra_data)
 
     @classmethod
     def build(cls, src_mac, eap):
@@ -235,15 +196,12 @@ class MessageParser:
         Raises:
             MessageParseError: the packed_message cannot be parsed."""
         ethernet_packet = EthernetPacket.parse(packed_message)
-        if ethernet_packet.ethertype != 0x888E:
-            raise MessageParseError(
-                "Ethernet packet with bad ethertype received: %s" % ethernet_packet
-            )
+        if ethernet_packet.ethertype != 0x888e:
+            raise MessageParseError("Ethernet packet with bad ethertype received: %s" %
+                                    ethernet_packet)
 
-        return (
-            MessageParser.one_x_parse(ethernet_packet.data, ethernet_packet.src_mac),
-            ethernet_packet.dst_mac,
-        )
+        return MessageParser.one_x_parse(ethernet_packet.data, ethernet_packet.src_mac), \
+               ethernet_packet.dst_mac
 
     @staticmethod
     def radius_parse(packed_message, secret, radius_lifecycle):
@@ -252,9 +210,8 @@ class MessageParser:
             RadiusPacket
         Raises:
             MessageParseError: the packed_message cannot be parsed"""
-        parsed_radius = Radius.parse(
-            packed_message, secret, radius_lifecycle=radius_lifecycle
-        )
+        parsed_radius = Radius.parse(packed_message, secret,
+                                     radius_lifecycle=radius_lifecycle)
         return parsed_radius
 
 
@@ -270,19 +227,16 @@ class MessagePacker:
             packed ethernet packet (bytes)
         """
         data = MessagePacker.pack(message)
-        ethernet_packet = EthernetPacket(
-            dst_mac=dst_mac, src_mac=src_mac, ethertype=0x888E, data=data
-        )
+        ethernet_packet = EthernetPacket(dst_mac=dst_mac, src_mac=src_mac,
+                                         ethertype=0x888e, data=data)
         return ethernet_packet.pack()
 
     @staticmethod
-    def radius_mab_pack(
-        src_mac, radius_packet_id, request_authenticator, secret, nas_port
-    ):
+    def radius_mab_pack(src_mac, radius_packet_id, request_authenticator, secret, nas_port):
         attr_list = []
-        no_dots_mac = str(src_mac).replace(":", "")
+        no_dots_mac = str(src_mac).replace(':', "")
         attr_list.append(UserName.create(no_dots_mac))
-        attr_list.append(CallingStationId.create(str(src_mac).replace(":", "-")))
+        attr_list.append(CallingStationId.create(str(src_mac).replace(':', '-')))
 
         if nas_port:
             attr_list.append(NASPort.create(nas_port))
@@ -290,30 +244,16 @@ class MessagePacker:
         ciphertext = UserPassword.encrypt(secret, request_authenticator, no_dots_mac)
         attr_list.append(UserPassword.create(ciphertext))
 
-        attr_list.append(
-            MessageAuthenticator.create(
-                bytes.fromhex("00000000000000000000000000000000")
-            )
-        )
+        attr_list.append(MessageAuthenticator.create(
+            bytes.fromhex("00000000000000000000000000000000")))
 
         attributes = RadiusAttributesList(attr_list)
-        access_request = RadiusAccessRequest(
-            radius_packet_id, request_authenticator, attributes
-        )
+        access_request = RadiusAccessRequest(radius_packet_id, request_authenticator, attributes)
         return access_request.build(secret)
 
     @staticmethod
-    def radius_pack(
-        eap_message,
-        src_mac,
-        username,
-        radius_packet_id,
-        request_authenticator,
-        state,
-        secret,
-        nas_port=None,
-        extra_attributes=None,
-    ):
+    def radius_pack(eap_message, src_mac, username, radius_packet_id,
+                    request_authenticator, state, secret, nas_port=None, extra_attributes=None):
         """
         Packs up a RADIUS message to send to a RADIUS Server.
         Args:
@@ -346,16 +286,11 @@ class MessagePacker:
         if state:
             attr_list.append(state)
 
-        attr_list.append(
-            MessageAuthenticator.create(
-                bytes.fromhex("00000000000000000000000000000000")
-            )
-        )
+        attr_list.append(MessageAuthenticator.create(
+            bytes.fromhex("00000000000000000000000000000000")))
 
         attributes = RadiusAttributesList(attr_list)
-        access_request = RadiusAccessRequest(
-            radius_packet_id, request_authenticator, attributes
-        )
+        access_request = RadiusAccessRequest(radius_packet_id, request_authenticator, attributes)
         return access_request.build(secret)
 
     @staticmethod
@@ -369,42 +304,34 @@ class MessagePacker:
             version (int), packet_type (int), packed eap (bytes)
         """
         if isinstance(message, IdentityMessage):
+
             eap = EapIdentity(message.code, message.message_id, message.identity)
             version = 1
             packet_type = 0
             data = eap.pack()
         elif isinstance(message, LegacyNakMessage):
-            eap = EapLegacyNak(
-                message.code, message.message_id, message.desired_auth_types
-            )
+            eap = EapLegacyNak(message.code, message.message_id, message.desired_auth_types)
             version = 1
             packet_type = 0
             data = eap.pack()
         elif isinstance(message, Md5ChallengeMessage):
-            eap = EapMd5Challenge(
-                message.code, message.message_id, message.challenge, message.extra_data
-            )
+            eap = EapMd5Challenge(message.code, message.message_id,
+                                  message.challenge, message.extra_data)
             version = 1
             packet_type = 0
             data = eap.pack()
         elif isinstance(message, TlsMessage):
-            eap = EapTLS(
-                message.code, message.message_id, message.flags, message.extra_data
-            )
+            eap = EapTLS(message.code, message.message_id, message.flags, message.extra_data)
             version = 1
             packet_type = 0
             data = eap.pack()
         elif isinstance(message, TtlsMessage):
-            eap = EapTTLS(
-                message.code, message.message_id, message.flags, message.extra_data
-            )
+            eap = EapTTLS(message.code, message.message_id, message.flags, message.extra_data)
             version = 1
             packet_type = 0
             data = eap.pack()
         elif isinstance(message, PeapMessage):
-            eap = EapPEAP(
-                message.code, message.message_id, message.flags, message.extra_data
-            )
+            eap = EapPEAP(message.code, message.message_id, message.flags, message.extra_data)
             version = 1
             packet_type = 0
             data = eap.pack()
